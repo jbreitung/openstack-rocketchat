@@ -1,15 +1,7 @@
 #!/bin/bash
-apt-get update
-apt-get -y install apache2
-rm /var/www/html/index.html
-cat > /var/www/html/index.html << EOF
-<!DOCTYPE html>
-<html>
-  <body>
-    <h1>Greetings from my Cloud-Init :-)</h1>
-    <p>hostname</p>
-  </body>
-</html>
-EOF
-sed -i "s/hostname/$HOSTNAME/" /var/www/html/index.html
-sed -i "1s/$/ $HOSTNAME/" /etc/hosts
+apt update
+snap install rocketchat-server
+snap set rocketchat-server port=80
+snap set rocketchat-server mongo-url=mongodb://localhost:27017/savannasaurus
+snap set rocketchat-server mongo-oplog-url=mongodb://localhost:27017/local
+systemctl restart snap.rocketchat-server.rocketchat-server.service
