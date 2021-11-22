@@ -5,6 +5,9 @@ NODE_VERSION=12.22.7
 ROCKETCHAT_VERSION=4.0.5
 ARCH=x64
 
+#Initiales Start-Verzeichnis der Installation speichern.
+startDir="$(pwd)"
+
 #Initial erstmal alle Pakete aktualisieren
 apt update
 apt upgrade -y
@@ -51,10 +54,32 @@ cd ../../../
 mv bundle/ /opt/RocketChat/
 cd /opt/RocketChat/
 
+#Installieren von PIP
+apt install -y pip
 #Python3 Openstack-Client via PIP installieren.
 pip install python-openstackclient
+
+#Zurueck ins Start-Verzeichnis wechseln.
+cd $startDir
 
 #Definierte Umgebungsvariablen des OpenStack API Sktiptes einlesen.
 source ./openstack.sh
 
 #Openstack API abfragen nach Loadbalancer für ROOT_URL und so.
+#TODO: Replace these example values by real values fetched from OpenStack API.
+ROCKETCHAT_URL=http:\\/\\/chat.example.org
+ROCKETCHAT_PORT=3000
+MONGODB_URL=mongodb:\\/\\/localhost:27017\\/rocketchat
+
+#Ersetzen der Placeholder in der Service-Definition von RocketChat.
+sed -i 's/RC_RUNTYPE/'$NODE_ENV'/g' ./rocketchat.service
+sed -i 's/RC_PORT/'$ROCKETCHAT_PORT'/g' ./rocketchat.service
+sed -i 's/RC_ROOTURL/'$ROCKETCHAT_URL'/g' ./rocketchat.service
+sed -i 's/RC_MONGOURL/'$MONGODB_URL'/g' ./rocketchat.service
+
+#Verschieben der Service-Definition nach /etc/systemd/system/
+mv ./rocketchat.service /etc/systemd/system/rocketchat.service
+
+#Aktivieren des Service und Starten
+systemctl enable /etc/systemd/system/rocketchat.service
+systemctl start rocketchat.service

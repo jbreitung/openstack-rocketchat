@@ -1,4 +1,7 @@
 #!/bin/bash
+#Initiales Start-Verzeichnis der Installation speichern.
+startDir="$(pwd)"
+
 #Initial erstmal alle Pakete aktualisieren
 apt update
 apt upgrade -y
