@@ -8,7 +8,7 @@ Restart=always
 RestartSec=10
 StandardOutput=syslog
 StandardError=syslog  
-SyslogIdentifier=nodejs-example
+SyslogIdentifier=nodejs-rocketchat
 User=rocketchat
 Group=rocketchat
 Environment=NODE_ENV=RC_RUNTYPE PORT=RC_PORT ROOT_URL=RC_ROOTURL MONGO_URL=RC_MONGOURL

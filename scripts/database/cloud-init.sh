@@ -27,6 +27,9 @@ systemctl stop mongod.service
 systemctl start mongod.service
 systemctl enable mongod
 
+#Warte fuer einige Sekunden, sodass der MongoDB-Server starten kann.
+sleep 15
+
 #Replica-Set initialisieren, welches von RocketChat benoetigt wird.
 mongo --eval "rs.initiate({
               _id: 'rs0',
