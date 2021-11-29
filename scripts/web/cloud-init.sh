@@ -36,6 +36,9 @@ cd ../../../
 mv bundle/ /opt/RocketChat/
 cd /opt/RocketChat/
 
+apt install -y python3-pip
+pip install openstackclient
+
 source ./openstack.sh
 
 //Openstack API abfragen nach Loadbalancer für ROOT_URL und so.
