@@ -1,0 +1,17 @@
+[Unit]
+Description=RocketChat Server
+After=network.target remote-fs.target nss-lookup.target
+
+[Service]
+ExecStart=/usr/local/bin/node /opt/RocketChat/bundle/main.js 
+Restart=always
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog  
+SyslogIdentifier=nodejs-rocketchat
+User=rocketchat
+Group=rocketchat
+Environment=NODE_ENV=RC_RUNTYPE PORT=RC_PORT ROOT_URL=RC_ROOTURL MONGO_URL=RC_MONGOURL
+
+[Install]
+WantedBy=multi-user.target
