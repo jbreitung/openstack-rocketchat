@@ -58,7 +58,6 @@ required_version = ">= 0.14.0"
 
 # OpenStack Provider setzen
 provider "openstack" {
-  # section of the clouds.yaml file
   cloud = "openstack"
   # we use Octavia-based load balancers in the NetLab @ HS-Fulda
   use_octavia = true
@@ -68,13 +67,14 @@ provider "openstack" {
 
 ###########################################################################
 #
-# create keypair
+# Schlüsselpaare für RocketChat Systeme erzeugen.
+# Wir nutzen für alle Systeme dieselben Schlüsselpaare.
 #
 ###########################################################################
 
 # import keypair, if public_key is not specified, create new keypair to use
 resource "openstack_compute_keypair_v2" "terraform-keypair" {
-  name       = "my-terraform-pubkey"
+  name        = keypair_name
   #public_key = file("~/.ssh/id_rsa.pub")
 }
 
@@ -82,33 +82,58 @@ resource "openstack_compute_keypair_v2" "terraform-keypair" {
 
 ###########################################################################
 #
-# create security group
+# Sicherheitsgruppen fuer Datenbank und Web erstellen.
 #
 ###########################################################################
 
-resource "openstack_networking_secgroup_v2" "terraform-secgroup" {
-  name        = "my-terraform-secgroup"
-  description = "for terraform instances"
+resource "openstack_networking_secgroup_v2" "terraform-secgroup-rcweb" {
+  name        = rcweb_secgrp
+  description = "RocketChat Web SecGroup"
 }
 
-resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rule-http" {
-  direction         = "ingress"
-  ethertype         = "IPv4"
-  protocol          = "tcp"
-  port_range_min    = 80
-  port_range_max    = 80
-  #remote_ip_prefix  = "0.0.0.0/0"
-  security_group_id = openstack_networking_secgroup_v2.terraform-secgroup.id
-}
-
-resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rule-ssh" {
+resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcweb-rule-http" {
   direction         = "ingress"
   ethertype         = "IPv4"
   protocol          = "tcp"
   port_range_min    = 22
   port_range_max    = 22
   #remote_ip_prefix  = "0.0.0.0/0"
-  security_group_id = openstack_networking_secgroup_v2.terraform-secgroup.id
+  security_group_id = openstack_networking_secgroup_v2.terraform-secgroup-rcweb.id
+}
+
+resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcweb-rule-http" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 3000
+  port_range_max    = 3000
+  #remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = openstack_networking_secgroup_v2.terraform-secgroup-rcweb.id
+}
+
+resource "openstack_networking_secgroup_v2" "terraform-secgroup-rcdb" {
+  name        = rcdb_secgrp
+  description = "RocketChat Web SecGroup"
+}
+
+resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcdb-rule-http" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 22
+  port_range_max    = 22
+  #remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = openstack_networking_secgroup_v2.terraform-secgroup-rcdb.id
+}
+
+resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcdb-rule-http" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 27017
+  port_range_max    = 27019
+  #remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = openstack_networking_secgroup_v2.terraform-secgroup-rcdb.id
 }
 
 
