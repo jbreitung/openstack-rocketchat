@@ -20,6 +20,16 @@ locals {
   rcdb_prefix   = "RocketChat_vm_DB"
   
   repo_url      = "https://github.com/jbreitung/openstack-rocketchat.git"
+
+  user_data = "<<-EOF
+    #!/bin/bash
+    apt-get update
+    apt install unzip
+  curl -L -O https://github.com/jbreitung/openstack-rocketchat/archive/refs/heads/master.zip
+  unzip master.zip -d "/app"
+  rm -f master.zip   
+  EOF"
+
 }
 
 # 01. Keypair erzeugen: $keypair_name
@@ -219,6 +229,8 @@ resource "openstack_compute_instance_v2" "terraform-instance-db-1" {
   depends_on = [
     openstack_networking_subnet_v2.terraform-network-db 
   ]
+
+  user_data = local.user_data
 }
 
 # Virtuelle Maschine 2 fuer Datenbank (MongoDB)
