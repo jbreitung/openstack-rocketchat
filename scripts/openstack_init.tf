@@ -21,15 +21,7 @@ locals {
   
   repo_url      = "https://github.com/jbreitung/openstack-rocketchat.git"
 
-  user_data = "<<-EOF
-      #!/bin/bash
-      mkdir /tmp/setup
-      apt-get update
-      apt install unzip
-      curl -L -O https://github.com/jbreitung/openstack-rocketchat/archive/refs/heads/master.zip
-      unzip master.zip -d '/tmp/setup'
-      rm -f master.zip   
-  EOF"
+  user_data = "${file("run.sh")}"
 
 }
 
@@ -100,7 +92,7 @@ resource "openstack_networking_secgroup_v2" "terraform-secgroup-rcweb" {
 }
 
 # Regel fuer eingehenden SSH Traffic
-resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcweb-rule-http" {
+resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcweb-rule-ssh" {
   direction         = "ingress"
   ethertype         = "IPv4"
   protocol          = "tcp"
@@ -128,7 +120,7 @@ resource "openstack_networking_secgroup_v2" "terraform-secgroup-rcdb" {
 }
 
 # Regel fuer eingehenden SSH Traffic
-resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcdb-rule-http" {
+resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcdb-rule-ssh" {
   direction         = "ingress"
   ethertype         = "IPv4"
   protocol          = "tcp"
@@ -139,7 +131,7 @@ resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcdb-rule-h
 }
 
 # Regel fuer eingehenden MongoDB Traffic auf Ports 27017, 27018 und 27019
-resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcdb-rule-http" {
+resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcdb-rule-db" {
   direction         = "ingress"
   ethertype         = "IPv4"
   protocol          = "tcp"
@@ -193,19 +185,19 @@ data "openstack_networking_network_v2" "terraform-network-public" {
 # Verlinke direkt das externe Netzwerk (public1).
 resource "openstack_networking_router_v2" "terraform-router-rcnet" {
   name                = local.router_name
-  external_network_id = terraform-network-public.id
+  external_network_id = data.openstack_networking_network_v2.terraform-network-public.id
   admin_state_up      = "true"
 }
 
 # Router-Interface fuer Web-Subnet erstellen
-resource "openstack_networking_router_interface_v2" "terraform-router-if-web {
-  router_id = data.openstack_networking_router_v2.terraform-router-rcnet.id
+resource "openstack_networking_router_interface_v2" "terraform-router-if-web" {
+  router_id = openstack_networking_router_v2.terraform-router-rcnet.id
   subnet_id = openstack_networking_subnet_v2.terraform-subnet-web.id
 }
 
 # Router-Interface fuer DB-Subnet erstellen
-resource "openstack_networking_router_interface_v2" "terraform-router-if-db {
-  router_id = data.openstack_networking_router_v2.terraform-router-rcnet.id
+resource "openstack_networking_router_interface_v2" "terraform-router-if-db" {
+  router_id = openstack_networking_router_v2.terraform-router-rcnet.id
   subnet_id = openstack_networking_subnet_v2.terraform-subnet-db.id
 }
 
@@ -228,7 +220,7 @@ resource "openstack_compute_instance_v2" "terraform-instance-db-1" {
   }
 
   depends_on = [
-    openstack_networking_subnet_v2.terraform-network-db 
+    openstack_networking_subnet_v2.terraform-subnet-db 
   ]
 
   user_data = local.user_data
@@ -247,7 +239,7 @@ resource "openstack_compute_instance_v2" "terraform-instance-db-2" {
   }
 
   depends_on = [
-    openstack_networking_subnet_v2.terraform-network-db 
+    openstack_networking_subnet_v2.terraform-subnet-db 
   ]
 }
 
@@ -264,7 +256,7 @@ resource "openstack_compute_instance_v2" "terraform-instance-db-3" {
   }
 
   depends_on = [
-    openstack_networking_subnet_v2.terraform-network-db 
+    openstack_networking_subnet_v2.terraform-subnet-db 
   ]
 }
 
@@ -285,7 +277,7 @@ resource "openstack_compute_instance_v2" "terraform-instance-web-1" {
     openstack_compute_instance_v2.terraform-instance-db-1,
     openstack_compute_instance_v2.terraform-instance-db-2,
     openstack_compute_instance_v2.terraform-instance-db-3,
-    openstack_networking_subnet_v2.terraform-network-web 
+    openstack_networking_subnet_v2.terraform-subnet-web 
   ]
 }
 
@@ -306,7 +298,7 @@ resource "openstack_compute_instance_v2" "terraform-instance-web-2" {
     openstack_compute_instance_v2.terraform-instance-db-1,
     openstack_compute_instance_v2.terraform-instance-db-2,
     openstack_compute_instance_v2.terraform-instance-db-3,
-    openstack_networking_subnet_v2.terraform-network-web 
+    openstack_networking_subnet_v2.terraform-subnet-web 
   ]
 }
 
@@ -327,7 +319,7 @@ resource "openstack_compute_instance_v2" "terraform-instance-web-3" {
     openstack_compute_instance_v2.terraform-instance-db-1,
     openstack_compute_instance_v2.terraform-instance-db-2,
     openstack_compute_instance_v2.terraform-instance-db-3,
-    openstack_networking_subnet_v2.terraform-network-web 
+    openstack_networking_subnet_v2.terraform-subnet-web 
   ]
 }
 
@@ -364,17 +356,17 @@ resource "openstack_lb_members_v2" "terraform-lb-pool-members-web" {
   pool_id = openstack_lb_pool_v2.terraform-lb-pool-web.id
 
   member {
-    address       = openstack_compute_instance_v2terraform-instance-web-1.access_ip_v4
+    address       = openstack_compute_instance_v2.terraform-instance-web-1.access_ip_v4
     protocol_port = 3000
   }
   
   member {
-    address       = openstack_compute_instance_v2terraform-instance-web-2.access_ip_v4
+    address       = openstack_compute_instance_v2.terraform-instance-web-2.access_ip_v4
     protocol_port = 3000
   }
 
   member {
-    address       = openstack_compute_instance_v2terraform-instance-web-3.access_ip_v4
+    address       = openstack_compute_instance_v2.terraform-instance-web-3.access_ip_v4
     protocol_port = 3000
   }
 }
