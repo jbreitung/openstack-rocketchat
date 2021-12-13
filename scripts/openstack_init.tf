@@ -19,7 +19,7 @@ locals {
   rcweb_prefix  = "RocketChat_vm_Web"
   rcdb_prefix   = "RocketChat_vm_DB"
   
-  repo_url      = "https://gitlab.cs.hs-fulda.de/fdai6185/ai1036-internetservices-projekt.git"
+  repo_url      = "https://github.com/jbreitung/openstack-rocketchat.git"
 }
 
 # 01. Keypair erzeugen: $keypair_name
