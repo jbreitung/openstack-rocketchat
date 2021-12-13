@@ -22,12 +22,13 @@ locals {
   repo_url      = "https://github.com/jbreitung/openstack-rocketchat.git"
 
   user_data = "<<-EOF
-    #!/bin/bash
-    apt-get update
-    apt install unzip
-  curl -L -O https://github.com/jbreitung/openstack-rocketchat/archive/refs/heads/master.zip
-  unzip master.zip -d '/app'
-  rm -f master.zip   
+      #!/bin/bash
+      mkdir /tmp/setup
+      apt-get update
+      apt install unzip
+      curl -L -O https://github.com/jbreitung/openstack-rocketchat/archive/refs/heads/master.zip
+      unzip master.zip -d '/tmp/setup'
+      rm -f master.zip   
   EOF"
 
 }
