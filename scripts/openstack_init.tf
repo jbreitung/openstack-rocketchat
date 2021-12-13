@@ -1,8 +1,10 @@
 # Variablen und Namen fuer das Projekt
 locals {
-  net_web_name  = "rcnet-web"
-  net_db_name   = "rcnet-db"
-  router_name   = "rcnet-router"
+  net_web_name    = "rcnet-web"
+  subnet_web_name = "rcsubnet-web"
+  net_db_name     = "rcnet-db"
+  subnet_db_name  = "rcsubnet-db"
+  router_name     = "rcnet-router"
   
   keypair_name  = "RocketChat_Keypair"
   
@@ -63,8 +65,6 @@ provider "openstack" {
   use_octavia = true
 }
 
-
-
 ###########################################################################
 #
 # Schlüsselpaare für RocketChat Systeme erzeugen.
@@ -72,13 +72,9 @@ provider "openstack" {
 #
 ###########################################################################
 
-# import keypair, if public_key is not specified, create new keypair to use
 resource "openstack_compute_keypair_v2" "terraform-keypair" {
-  name        = keypair_name
-  #public_key = file("~/.ssh/id_rsa.pub")
+  name        = local.keypair_name
 }
-
-
 
 ###########################################################################
 #
@@ -86,11 +82,13 @@ resource "openstack_compute_keypair_v2" "terraform-keypair" {
 #
 ###########################################################################
 
+# Uebergeordnete Sicherheitsgruppe von Web-VM
 resource "openstack_networking_secgroup_v2" "terraform-secgroup-rcweb" {
-  name        = rcweb_secgrp
+  name        = local.rcweb_secgrp
   description = "RocketChat Web SecGroup"
 }
 
+# Regel fuer eingehenden SSH Traffic
 resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcweb-rule-http" {
   direction         = "ingress"
   ethertype         = "IPv4"
@@ -101,6 +99,7 @@ resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcweb-rule-
   security_group_id = openstack_networking_secgroup_v2.terraform-secgroup-rcweb.id
 }
 
+# Regel fuer eingehenden HTTP Traffic auf Port 3000 von RocketChat
 resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcweb-rule-http" {
   direction         = "ingress"
   ethertype         = "IPv4"
@@ -111,11 +110,13 @@ resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcweb-rule-
   security_group_id = openstack_networking_secgroup_v2.terraform-secgroup-rcweb.id
 }
 
+# Uebergeordnete Sicherheitsgruppe von DB-VM
 resource "openstack_networking_secgroup_v2" "terraform-secgroup-rcdb" {
-  name        = rcdb_secgrp
+  name        = local.rcdb_secgrp
   description = "RocketChat Web SecGroup"
 }
 
+# Regel fuer eingehenden SSH Traffic
 resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcdb-rule-http" {
   direction         = "ingress"
   ethertype         = "IPv4"
@@ -126,6 +127,7 @@ resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcdb-rule-h
   security_group_id = openstack_networking_secgroup_v2.terraform-secgroup-rcdb.id
 }
 
+# Regel fuer eingehenden MongoDB Traffic auf Ports 27017, 27018 und 27019
 resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcdb-rule-http" {
   direction         = "ingress"
   ethertype         = "IPv4"
@@ -136,146 +138,237 @@ resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcdb-rule-h
   security_group_id = openstack_networking_secgroup_v2.terraform-secgroup-rcdb.id
 }
 
-
 ###########################################################################
 #
-# create network
+# Netzwerke fuer Web- und Datenbank VMs erstellen.
+# Zusaetzlich Router erstellen fuer Routing zwischen den Netzen.
 #
 ###########################################################################
 
-resource "openstack_networking_network_v2" "terraform-network-1" {
-  name           = "my-terraform-network-1"
+# Uebergeordnetes Web-Netzwerk erstellen
+resource "openstack_networking_network_v2" "terraform-network-web" {
+  name           = local.net_web_name
   admin_state_up = "true"
 }
 
-resource "openstack_networking_subnet_v2" "terraform-subnet-1" {
-  name       = "my-terraform-subnet-1"
-  network_id = openstack_networking_network_v2.terraform-network-1.id
-  cidr       = "192.168.255.0/24"
+# Web-Subnetz erstellen
+resource "openstack_networking_subnet_v2" "terraform-subnet-web" {
+  name       = local.subnet_web_name
+  network_id = openstack_networking_network_v2.terraform-network-web.id
+  cidr       = "10.0.100.0/24"
   ip_version = 4
 }
 
-data "openstack_networking_router_v2" "router-1" {
-  name = local.router_name
+# Uebergeordnetes DB-Netzwerk erstellen
+resource "openstack_networking_network_v2" "terraform-network-db" {
+  name           = local.net_db_name
+  admin_state_up = "true"
 }
 
-resource "openstack_networking_router_interface_v2" "router_interface_1" {
-  router_id = data.openstack_networking_router_v2.router-1.id
-  subnet_id = openstack_networking_subnet_v2.terraform-subnet-1.id
+# DB-Subnetz erstellen
+resource "openstack_networking_subnet_v2" "terraform-subnet-db" {
+  name       = local.subnet_db_name
+  network_id = openstack_networking_network_v2.terraform-network-db.id
+  cidr       = "10.0.200.0/24"
+  ip_version = 4
 }
 
+# Public-Netzwerk abfragen
+data "openstack_networking_network_v2" "terraform-network-public" {
+  name = "public1"
+}
 
+# Router fuer Verbindung der Netzer erstellen
+# Verlinke direkt das externe Netzwerk (public1).
+resource "openstack_networking_router_v2" "terraform-router-rcnet" {
+  name                = local.router_name
+  external_network_id = terraform-network-public.id
+  admin_state_up      = "true"
+}
+
+# Router-Interface fuer Web-Subnet erstellen
+resource "openstack_networking_router_interface_v2" "terraform-router-if-web {
+  router_id = data.openstack_networking_router_v2.terraform-router-rcnet.id
+  subnet_id = openstack_networking_subnet_v2.terraform-subnet-web.id
+}
+
+# Router-Interface fuer DB-Subnet erstellen
+resource "openstack_networking_router_interface_v2" "terraform-router-if-db {
+  router_id = data.openstack_networking_router_v2.terraform-router-rcnet.id
+  subnet_id = openstack_networking_subnet_v2.terraform-subnet-db.id
+}
 
 ###########################################################################
 #
-# create instances
+# Virtuelle Maschinen erstellen.
 #
 ###########################################################################
 
-resource "openstack_compute_instance_v2" "terraform-instance-1" {
-  name              = "my-terraform-instance-1"
+# Virtuelle Maschine 1 fuer Datenbank (MongoDB)
+resource "openstack_compute_instance_v2" "terraform-instance-db-1" {
+  name              = "${local.rcdb_prefix}-1"
   image_name        = local.image_name
   flavor_name       = local.flavor_name
   key_pair          = openstack_compute_keypair_v2.terraform-keypair.name
-  security_groups   = [openstack_networking_secgroup_v2.terraform-secgroup.name]
+  security_groups   = [openstack_networking_secgroup_v2.terraform-secgroup-rcdb.name]
 
   network {
-    uuid = openstack_networking_network_v2.terraform-network-1.id
+    uuid = openstack_networking_network_v2.terraform-network-db.id
   }
 
-  depends_on = [ openstack_networking_subnet_v2.terraform-subnet-1 ]
-
-  user_data = <<-EOF
-    #!/bin/bash
-    apt-get update
-    apt-get -y install apache2
-    rm /var/www/html/index.html
-    cat > /var/www/html/index.html << INNEREOF
-    <!DOCTYPE html>
-    <html>
-      <body>
-        <h1>It works!</h1>
-        <p>hostname</p>
-      </body>
-    </html>
-    INNEREOF
-    sed -i "s/hostname/terraform-instance-1/" /var/www/html/index.html
-    sed -i "1s/$/ terraform-instance-1/" /etc/hosts
-  EOF
+  depends_on = [
+    openstack_networking_subnet_v2.terraform-network-db 
+  ]
 }
 
-resource "openstack_compute_instance_v2" "terraform-instance-2" {
-  name            = "my-terraform-instance-2"
-  image_name      = local.image_name
-  flavor_name     = local.flavor_name
-  key_pair        = openstack_compute_keypair_v2.terraform-keypair.name
-  security_groups = [openstack_networking_secgroup_v2.terraform-secgroup.id]
+# Virtuelle Maschine 2 fuer Datenbank (MongoDB)
+resource "openstack_compute_instance_v2" "terraform-instance-db-2" {
+  name              = "${local.rcdb_prefix}-2"
+  image_name        = local.image_name
+  flavor_name       = local.flavor_name
+  key_pair          = openstack_compute_keypair_v2.terraform-keypair.name
+  security_groups   = [openstack_networking_secgroup_v2.terraform-secgroup-rcdb.name]
 
   network {
-    uuid = openstack_networking_network_v2.terraform-network-1.id
+    uuid = openstack_networking_network_v2.terraform-network-db.id
   }
 
-  depends_on = [ openstack_networking_subnet_v2.terraform-subnet-1 ]
-
-  user_data = <<-EOF
-    #!/bin/bash
-    apt-get update
-    apt-get -y install apache2
-    rm /var/www/html/index.html
-    cat > /var/www/html/index.html << INNEREOF
-    <!DOCTYPE html>
-    <html>
-      <body>
-        <h1>It works!</h1>
-        <p>hostname</p>
-      </body>
-    </html>
-    INNEREOF
-    sed -i "s/hostname/terraform-instance-2/" /var/www/html/index.html
-    sed -i "1s/$/ terraform-instance-2/" /etc/hosts
-  EOF
+  depends_on = [
+    openstack_networking_subnet_v2.terraform-network-db 
+  ]
 }
 
+# Virtuelle Maschine 3 fuer Datenbank (MongoDB)
+resource "openstack_compute_instance_v2" "terraform-instance-db-3" {
+  name              = "${local.rcdb_prefix}-3"
+  image_name        = local.image_name
+  flavor_name       = local.flavor_name
+  key_pair          = openstack_compute_keypair_v2.terraform-keypair.name
+  security_groups   = [openstack_networking_secgroup_v2.terraform-secgroup-rcdb.name]
 
+  network {
+    uuid = openstack_networking_network_v2.terraform-network-db.id
+  }
+
+  depends_on = [
+    openstack_networking_subnet_v2.terraform-network-db 
+  ]
+}
+
+# Virtuelle Maschine 1 fuer Webserver (RocketChat)
+# Darf erst nach Erstellung der Datenbank-Server erstellt werden.
+resource "openstack_compute_instance_v2" "terraform-instance-web-1" {
+  name              = "${local.rcweb_prefix}-1"
+  image_name        = local.image_name
+  flavor_name       = local.flavor_name
+  key_pair          = openstack_compute_keypair_v2.terraform-keypair.name
+  security_groups   = [openstack_networking_secgroup_v2.terraform-secgroup-rcweb.name]
+
+  network {
+    uuid = openstack_networking_network_v2.terraform-network-web.id
+  }
+
+  depends_on = [ 
+    openstack_compute_instance_v2.terraform-instance-db-1,
+    openstack_compute_instance_v2.terraform-instance-db-2,
+    openstack_compute_instance_v2.terraform-instance-db-3,
+    openstack_networking_subnet_v2.terraform-network-web 
+  ]
+}
+
+# Virtuelle Maschine 2 fuer Webserver (RocketChat)
+# Darf erst nach Erstellung der Datenbank-Server erstellt werden.
+resource "openstack_compute_instance_v2" "terraform-instance-web-2" {
+  name              = "${local.rcweb_prefix}-2"
+  image_name        = local.image_name
+  flavor_name       = local.flavor_name
+  key_pair          = openstack_compute_keypair_v2.terraform-keypair.name
+  security_groups   = [openstack_networking_secgroup_v2.terraform-secgroup-rcweb.name]
+
+  network {
+    uuid = openstack_networking_network_v2.terraform-network-web.id
+  }
+
+  depends_on = [ 
+    openstack_compute_instance_v2.terraform-instance-db-1,
+    openstack_compute_instance_v2.terraform-instance-db-2,
+    openstack_compute_instance_v2.terraform-instance-db-3,
+    openstack_networking_subnet_v2.terraform-network-web 
+  ]
+}
+
+# Virtuelle Maschine 3 fuer Webserver (RocketChat)
+# Darf erst nach Erstellung der Datenbank-Server erstellt werden.
+resource "openstack_compute_instance_v2" "terraform-instance-web-3" {
+  name              = "${local.rcweb_prefix}-3"
+  image_name        = local.image_name
+  flavor_name       = local.flavor_name
+  key_pair          = openstack_compute_keypair_v2.terraform-keypair.name
+  security_groups   = [openstack_networking_secgroup_v2.terraform-secgroup-rcweb.name]
+
+  network {
+    uuid = openstack_networking_network_v2.terraform-network-web.id
+  }
+
+  depends_on = [ 
+    openstack_compute_instance_v2.terraform-instance-db-1,
+    openstack_compute_instance_v2.terraform-instance-db-2,
+    openstack_compute_instance_v2.terraform-instance-db-3,
+    openstack_networking_subnet_v2.terraform-network-web 
+  ]
+}
 
 ###########################################################################
 #
-# create load balancer
+# Load Balancer erstellen
 #
 ###########################################################################
-resource "openstack_lb_loadbalancer_v2" "lb_1" {
-  vip_subnet_id = openstack_networking_subnet_v2.terraform-subnet-1.id
+
+# Load Balancer fuer Webserver (RocketChat)
+resource "openstack_lb_loadbalancer_v2" "terraform-lb-web" {
+  name          = local.rcweb_loadbal
+  vip_subnet_id = openstack_networking_subnet_v2.terraform-subnet-web.id
 }
 
-resource "openstack_lb_listener_v2" "listener_1" {
+# Listener fuer Load Balancer erstellen 
+resource "openstack_lb_listener_v2" "terraform-lb-listener-web" {
+  name            = "${local.rcweb_loadbal}-listener"
   protocol        = "HTTP"
   protocol_port   = 80
-  loadbalancer_id = openstack_lb_loadbalancer_v2.lb_1.id
+  loadbalancer_id = openstack_lb_loadbalancer_v2.terraform-lb-web.id
   connection_limit = 1024
 }
 
-resource "openstack_lb_pool_v2" "pool_1" {
+# Pool fuer Load Balancer erstellen
+resource "openstack_lb_pool_v2" "terraform-lb-pool-web" {
   protocol    = "HTTP"
   lb_method   = "ROUND_ROBIN"
-  listener_id = openstack_lb_listener_v2.listener_1.id
+  listener_id = openstack_lb_listener_v2.terraform-lb-listener-web.id
 }
 
-resource "openstack_lb_members_v2" "members_1" {
-  pool_id = openstack_lb_pool_v2.pool_1.id
+# Mitglieder des Pools definieren
+resource "openstack_lb_members_v2" "terraform-lb-pool-members-web" {
+  pool_id = openstack_lb_pool_v2.terraform-lb-pool-web.id
 
   member {
-    address       = openstack_compute_instance_v2.terraform-instance-1.access_ip_v4
-    protocol_port = 80
+    address       = openstack_compute_instance_v2terraform-instance-web-1.access_ip_v4
+    protocol_port = 3000
+  }
+  
+  member {
+    address       = openstack_compute_instance_v2terraform-instance-web-2.access_ip_v4
+    protocol_port = 3000
   }
 
   member {
-    address       = openstack_compute_instance_v2.terraform-instance-2.access_ip_v4
-    protocol_port = 80
+    address       = openstack_compute_instance_v2terraform-instance-web-3.access_ip_v4
+    protocol_port = 3000
   }
 }
 
-resource "openstack_lb_monitor_v2" "monitor_1" {
-  pool_id        = openstack_lb_pool_v2.pool_1.id
+# Health-Monitor fuer Load Balancer erstellen
+resource "openstack_lb_monitor_v2" "terraform-lb-monitor-web" {
+  pool_id        = openstack_lb_pool_v2.terraform-lb-pool-web.id
   type           = "HTTP"
   delay          = 5
   timeout        = 5
@@ -285,18 +378,19 @@ resource "openstack_lb_monitor_v2" "monitor_1" {
   expected_codes = 200
 }
 
-
-
 ###########################################################################
 #
-# assign floating ip to load balancer
+# Oeffentliche Floating-IP fuer Load Balancer zuweisen
 #
 ###########################################################################
-resource "openstack_networking_floatingip_v2" "fip_1" {
+
+# Floating-IP Ressource erstellen
+resource "openstack_networking_floatingip_v2" "terraform-floating-ip-lb-web" {
   pool    = "public1"
-  port_id = openstack_lb_loadbalancer_v2.lb_1.vip_port_id
+  port_id = openstack_lb_loadbalancer_v2.terraform-lb-web.vip_port_id
 }
 
+# Floating-IP Ressource zuweisen (speichern)
 output "loadbalancer_vip_addr" {
-  value = openstack_networking_floatingip_v2.fip_1
+  value = openstack_networking_floatingip_v2.terraform-floating-ip-lb-web
 }
