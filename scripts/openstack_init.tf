@@ -26,7 +26,7 @@ locals {
     apt-get update
     apt install unzip
   curl -L -O https://github.com/jbreitung/openstack-rocketchat/archive/refs/heads/master.zip
-  unzip master.zip -d "/app"
+  unzip master.zip -d '/app'
   rm -f master.zip   
   EOF"
 
