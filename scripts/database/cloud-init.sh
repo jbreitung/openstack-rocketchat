@@ -30,7 +30,14 @@ systemctl enable mongod
 #Warte fuer einige Sekunden, sodass der MongoDB-Server starten kann.
 sleep 15
 
+#Lese eigene IP-Adresse
+IP=$(hostname -I)
+
 #Replica-Set initialisieren, welches von RocketChat benoetigt wird.
 mongo --eval "rs.initiate({
               _id: 'rs0',
-              members: [ { _id: 0, host: 'localhost:27017' } ]})"
+              members: [ 
+                  { _id: 0, host: '10.0.200.10:27017' }, 
+                  { _id: 1, host: '10.0.200.20:27017' }, 
+                  { _id: 2, host: '10.0.200.30:27017' } 
+              ]})"
