@@ -218,6 +218,7 @@ resource "openstack_compute_instance_v2" "terraform-instance-db-1" {
 
   network {
     uuid = openstack_networking_network_v2.terraform-network-db.id
+    fixed_ip_v4 = "10.0.200.10"
   }
 
   depends_on = [
@@ -237,6 +238,7 @@ resource "openstack_compute_instance_v2" "terraform-instance-db-2" {
 
   network {
     uuid = openstack_networking_network_v2.terraform-network-db.id
+    fixed_ip_v4 = "10.0.200.20"
   }
 
   depends_on = [
@@ -256,6 +258,7 @@ resource "openstack_compute_instance_v2" "terraform-instance-db-3" {
 
   network {
     uuid = openstack_networking_network_v2.terraform-network-db.id
+    fixed_ip_v4 = "10.0.200.30"
   }
 
   depends_on = [

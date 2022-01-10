@@ -63,13 +63,15 @@ pip install python-openstackclient
 cd $startDir
 
 #Definierte Umgebungsvariablen des OpenStack API Sktiptes einlesen.
-source ./openstack.sh
+#source /tmp/setup/openstack-rocketchat-master/scripts/web/openstack.sh
+
+#openstack server list --name="RocketChat_vm_DB-[1-3]"
 
 #Openstack API abfragen nach Loadbalancer für ROOT_URL und so.
 #TODO: Replace these example values by real values fetched from OpenStack API.
 ROCKETCHAT_URL=http:\\/\\/chat.example.org
 ROCKETCHAT_PORT=3000
-MONGODB_URL=mongodb:\\/\\/localhost:27017\\/rocketchat
+MONGODB_URL=mongodb:\\/\\/10.0.200.10:27017,10.0.200.20:27017,10.0.200.30:27017\\/rocketchat?replicaSet=rs0
 
 #Ersetzen der Placeholder in der Service-Definition von RocketChat.
 sed -i 's/RC_RUNTYPE/'$NODE_ENV'/g' ./rocketchat.service
@@ -78,7 +80,7 @@ sed -i 's/RC_ROOTURL/'$ROCKETCHAT_URL'/g' ./rocketchat.service
 sed -i 's/RC_MONGOURL/'$MONGODB_URL'/g' ./rocketchat.service
 
 #Verschieben der Service-Definition nach /etc/systemd/system/
-mv ./rocketchat.service /etc/systemd/system/rocketchat.service
+mv /tmp/setup/openstack-rocketchat-master/scripts/web/rocketchat.service /etc/systemd/system/rocketchat.service
 
 #Aktivieren des Service und Starten
 systemctl enable /etc/systemd/system/rocketchat.service

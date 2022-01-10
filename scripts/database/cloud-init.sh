@@ -20,7 +20,7 @@ apt update
 apt install -y mongodb-org
 
 #Konfigurationsdatei von MongoDB verschieben.
-mv ./mongod.conf /etc/mongod.conf
+mv /tmp/setup/openstack-rocketchat-master/scripts/database/mongod.conf /etc/mongod.conf
 
 #MongoDB-Service neustarten und Auto-Start aktivieren.
 systemctl stop mongod.service
