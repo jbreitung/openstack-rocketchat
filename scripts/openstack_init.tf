@@ -21,7 +21,8 @@ locals {
   
   repo_url      = "https://github.com/jbreitung/openstack-rocketchat.git"
 
-  user_data = "${file("run.sh")}"
+  user_data_db  = "${file("run_db.sh")}"
+  user_data_web = "${file("run_web.sh")}"
 
 }
 
@@ -223,7 +224,7 @@ resource "openstack_compute_instance_v2" "terraform-instance-db-1" {
     openstack_networking_subnet_v2.terraform-subnet-db 
   ]
 
-  user_data = local.user_data
+  user_data = local.user_data_db
 }
 
 # Virtuelle Maschine 2 fuer Datenbank (MongoDB)
@@ -241,6 +242,8 @@ resource "openstack_compute_instance_v2" "terraform-instance-db-2" {
   depends_on = [
     openstack_networking_subnet_v2.terraform-subnet-db 
   ]
+
+  user_data = local.user_data_db
 }
 
 # Virtuelle Maschine 3 fuer Datenbank (MongoDB)
@@ -258,6 +261,8 @@ resource "openstack_compute_instance_v2" "terraform-instance-db-3" {
   depends_on = [
     openstack_networking_subnet_v2.terraform-subnet-db 
   ]
+
+  user_data = local.user_data_db
 }
 
 # Virtuelle Maschine 1 fuer Webserver (RocketChat)
@@ -279,6 +284,8 @@ resource "openstack_compute_instance_v2" "terraform-instance-web-1" {
     openstack_compute_instance_v2.terraform-instance-db-3,
     openstack_networking_subnet_v2.terraform-subnet-web 
   ]
+
+  user_data = local.user_data_web
 }
 
 # Virtuelle Maschine 2 fuer Webserver (RocketChat)
@@ -300,6 +307,8 @@ resource "openstack_compute_instance_v2" "terraform-instance-web-2" {
     openstack_compute_instance_v2.terraform-instance-db-3,
     openstack_networking_subnet_v2.terraform-subnet-web 
   ]
+
+  user_data = local.user_data_web
 }
 
 # Virtuelle Maschine 3 fuer Webserver (RocketChat)
@@ -321,6 +330,8 @@ resource "openstack_compute_instance_v2" "terraform-instance-web-3" {
     openstack_compute_instance_v2.terraform-instance-db-3,
     openstack_networking_subnet_v2.terraform-subnet-web 
   ]
+
+  user_data = local.user_data_web
 }
 
 ###########################################################################
