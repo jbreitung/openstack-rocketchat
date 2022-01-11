@@ -68,16 +68,16 @@ cd $startDir
 #openstack server list --name="RocketChat_vm_DB-[1-3]"
 
 #Openstack API abfragen nach Loadbalancer für ROOT_URL und so.
-#TODO: Replace these example values by real values fetched from OpenStack API.
+#TODO: Replace these example values by rsheal values fetched from OpenStack API.
 ROCKETCHAT_URL=http:\\/\\/chat.example.org
 ROCKETCHAT_PORT=3000
 MONGODB_URL=mongodb:\\/\\/10.0.200.10:27017,10.0.200.20:27017,10.0.200.30:27017\\/rocketchat?replicaSet=rs0
 
 #Ersetzen der Placeholder in der Service-Definition von RocketChat.
-sed -i 's/RC_RUNTYPE/'$NODE_ENV'/g' ./rocketchat.service
-sed -i 's/RC_PORT/'$ROCKETCHAT_PORT'/g' ./rocketchat.service
-sed -i 's/RC_ROOTURL/'$ROCKETCHAT_URL'/g' ./rocketchat.service
-sed -i 's/RC_MONGOURL/'$MONGODB_URL'/g' ./rocketchat.service
+sed -i 's/RC_RUNTYPE/'$NODE_ENV'/g' /tmp/setup/openstack-rocketchat-master/scripts/web/rocketchat.service
+sed -i 's/RC_PORT/'$ROCKETCHAT_PORT'/g' /tmp/setup/openstack-rocketchat-master/scripts/web/rocketchat.service
+sed -i 's/RC_ROOTURL/'$ROCKETCHAT_URL'/g' /tmp/setup/openstack-rocketchat-master/scripts/web/rocketchat.service
+sed -i 's/RC_MONGOURL/'$MONGODB_URL'/g' /tmp/setup/openstack-rocketchat-master/scripts/web/rocketchat.service
 
 #Verschieben der Service-Definition nach /etc/systemd/system/
 mv /tmp/setup/openstack-rocketchat-master/scripts/web/rocketchat.service /etc/systemd/system/rocketchat.service
