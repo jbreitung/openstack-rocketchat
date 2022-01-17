@@ -11,6 +11,10 @@ apt install -y --no-install-recommends ca-certificates curl wget gnupg dirmngr x
 #Installieren von MongoDB-Tools fuer Backup und Restore
 apt install -y --no-install-recommends mongodb-org-tools
 
+#Backup Mount Verzeichnis anlegen und mounten
+mkdir -p $BACKUP_PATH
+mount /dev/vdb $BACKUP_PATH
+
 #Initial führe einen Restore der evtl. bereits vorhandenen Backups aus
 #sodass die Datenbanken wieder einen möglichen vorherigen Stand annehmen
 if [ -z "$(ls -A $BACKUP_PATH)" ]; then

@@ -82,6 +82,7 @@ provider "openstack" {
 
 resource "openstack_compute_keypair_v2" "terraform-keypair" {
   name        = local.keypair_name
+  public_key  = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII9RLftcwgWek5rfUQvpQckypGOYuYp6KXspSGuoBaDU"
 }
 
 ###########################################################################
@@ -346,7 +347,7 @@ resource "openstack_compute_instance_v2" "terraform-instance-maintenance" {
 # Volume fuer Backup-Daten attachen.
 resource "openstack_compute_volume_attach_v2" "terraform-attach-backup" {
   instance_id = "${openstack_compute_instance_v2.terraform-instance-maintenance.id}"
-  volume_id   = "${openstack_blockstorage_volume_v3.terraform-volume-backup.id}"
+  volume_id   = "${data.openstack_blockstorage_volume_v3.terraform-volume-backup.id}"
 }
 
 # Virtuelle Maschine 1 fuer Webserver (RocketChat)
@@ -493,7 +494,29 @@ resource "openstack_networking_floatingip_v2" "terraform-floating-ip-lb-web" {
   port_id = openstack_lb_loadbalancer_v2.terraform-lb-web.vip_port_id
 }
 
-# Floating-IP Ressource zuweisen (speichern)
+# Floating-IP Ressource ausgeben
 output "loadbalancer_vip_addr" {
   value = openstack_networking_floatingip_v2.terraform-floating-ip-lb-web
+}
+
+###########################################################################
+#
+# Oeffentliche Floating-IP fuer Maintenance-Server zuweisen
+#
+###########################################################################
+
+# Floating-IP Ressource erstellen
+resource "openstack_networking_floatingip_v2" "terraform-floating-ip-maintenance" {
+  pool    = "public1"
+}
+
+# Floating IP zuweisen
+resource "openstack_compute_floatingip_associate_v2" "terraform-floating-ip-maintenance-assoc" {
+  floating_ip = openstack_networking_floatingip_v2.terraform-floating-ip-maintenance.address
+  instance_id = openstack_compute_instance_v2.terraform-instance-maintenance.id
+}
+
+# Floating-IP Ressource ausgeben
+output "maintenance_vip_addr" {
+  value = openstack_networking_floatingip_v2.terraform-floating-ip-maintenance
 }
