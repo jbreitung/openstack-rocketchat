@@ -4,6 +4,8 @@ locals {
   subnet_web_name = "rcsubnet-web"
   net_db_name     = "rcnet-db"
   subnet_db_name  = "rcsubnet-db"
+  net_mtn_name    = "rcnet-mtn"
+  subnet_mtn_name = "rcsubnet-mtn"
   router_name     = "rcnet-router"
   
   keypair_name  = "RocketChat_Keypair"
@@ -13,17 +15,19 @@ locals {
   
   rcweb_secgrp  = "RocketChat_sec_grp_Web"
   rcdb_secgrp   = "RocketChat_sec_grp_DB"
+  rcmtn_secgrp  = "RocketChat_sec_grp_Mtn"
   
   rcweb_loadbal = "RocketChat_lb_Web"
   
   rcweb_prefix  = "RocketChat_vm_Web"
   rcdb_prefix   = "RocketChat_vm_DB"
+  rcmtn_prefix  = "RocketChat_vm_Maintenance"
   
   repo_url      = "https://github.com/jbreitung/openstack-rocketchat.git"
 
   user_data_db  = "${file("run_db.sh")}"
   user_data_web = "${file("run_web.sh")}"
-
+  user_data_mtn = "${file("run_mtn.sh")}"
 }
 
 # 01. Keypair erzeugen: $keypair_name
@@ -142,6 +146,23 @@ resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcdb-rule-d
   security_group_id = openstack_networking_secgroup_v2.terraform-secgroup-rcdb.id
 }
 
+# Uebergeordnete Sicherheitsgruppe von Maintenance-VM
+resource "openstack_networking_secgroup_v2" "terraform-secgroup-rcmtn" {
+  name        = local.rcmtn_secgrp
+  description = "RocketChat Maintenance SecGroup"
+}
+
+# Regel fuer eingehenden SSH Traffic
+resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcmtn-rule-ssh" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 22
+  port_range_max    = 22
+  #remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = openstack_networking_secgroup_v2.terraform-secgroup-rcmtn.id
+}
+
 ###########################################################################
 #
 # Netzwerke fuer Web- und Datenbank VMs erstellen.
@@ -177,6 +198,20 @@ resource "openstack_networking_subnet_v2" "terraform-subnet-db" {
   ip_version = 4
 }
 
+# Maintenance-Netzwerk erstellen
+resource "openstack_networking_network_v2" "terraform-network-mtn" {
+  name           = local.net_mtn_name
+  admin_state_up = "true"
+}
+
+# Maintenance-Subnetz erstellen
+resource "openstack_networking_subnet_v2" "terraform-subnet-mtn" {
+  name       = local.subnet_mtn_name
+  network_id = openstack_networking_network_v2.terraform-network-mtn.id
+  cidr       = "10.0.0.0/24"
+  ip_version = 4
+}
+
 # Public-Netzwerk abfragen
 data "openstack_networking_network_v2" "terraform-network-public" {
   name = "public1"
@@ -200,6 +235,23 @@ resource "openstack_networking_router_interface_v2" "terraform-router-if-web" {
 resource "openstack_networking_router_interface_v2" "terraform-router-if-db" {
   router_id = openstack_networking_router_v2.terraform-router-rcnet.id
   subnet_id = openstack_networking_subnet_v2.terraform-subnet-db.id
+}
+
+# Router-Interface fuer Maintenance-Subnet erstellen
+resource "openstack_networking_router_interface_v2" "terraform-router-if-mtn" {
+  router_id = openstack_networking_router_v2.terraform-router-rcnet.id
+  subnet_id = openstack_networking_subnet_v2.terraform-subnet-mtn.id
+}
+
+###########################################################################
+#
+# Persistentes Volume fuer Backups abfragen
+#
+###########################################################################
+
+# Backup-Volume abfragen, welches existieren muss
+data "openstack_blockstorage_volume_v3" "terraform-volume-backup" {
+  name = "RCNet_Backup_Vol"
 }
 
 ###########################################################################
@@ -268,6 +320,35 @@ resource "openstack_compute_instance_v2" "terraform-instance-db-3" {
   user_data = local.user_data_db
 }
 
+# Virtuelle Maschine fuer Maintenance (RocketChat und Database)
+# Darf erst nach Erstellung der Datenbank-Server erstellt werden.
+resource "openstack_compute_instance_v2" "terraform-instance-maintenance" {
+  name              = "${local.rcmtn_prefix}"
+  image_name        = local.image_name
+  flavor_name       = local.flavor_name
+  key_pair          = openstack_compute_keypair_v2.terraform-keypair.name
+  security_groups   = [openstack_networking_secgroup_v2.terraform-secgroup-rcmtn.name]
+
+  network {
+    uuid = openstack_networking_network_v2.terraform-network-mtn.id
+  }
+
+  depends_on = [ 
+    openstack_compute_instance_v2.terraform-instance-db-1,
+    openstack_compute_instance_v2.terraform-instance-db-2,
+    openstack_compute_instance_v2.terraform-instance-db-3,
+    openstack_networking_subnet_v2.terraform-subnet-mtn 
+  ]
+
+  user_data = local.user_data_mtn
+}
+
+# Volume fuer Backup-Daten attachen.
+resource "openstack_compute_volume_attach_v2" "terraform-attach-backup" {
+  instance_id = "${openstack_compute_instance_v2.terraform-instance-maintenance.id}"
+  volume_id   = "${openstack_blockstorage_volume_v3.terraform-volume-backup.id}"
+}
+
 # Virtuelle Maschine 1 fuer Webserver (RocketChat)
 # Darf erst nach Erstellung der Datenbank-Server erstellt werden.
 resource "openstack_compute_instance_v2" "terraform-instance-web-1" {
@@ -285,7 +366,8 @@ resource "openstack_compute_instance_v2" "terraform-instance-web-1" {
     openstack_compute_instance_v2.terraform-instance-db-1,
     openstack_compute_instance_v2.terraform-instance-db-2,
     openstack_compute_instance_v2.terraform-instance-db-3,
-    openstack_networking_subnet_v2.terraform-subnet-web 
+    openstack_networking_subnet_v2.terraform-subnet-web,
+    openstack_compute_instance_v2.terraform-instance-maintenance 
   ]
 
   user_data = local.user_data_web
@@ -308,7 +390,8 @@ resource "openstack_compute_instance_v2" "terraform-instance-web-2" {
     openstack_compute_instance_v2.terraform-instance-db-1,
     openstack_compute_instance_v2.terraform-instance-db-2,
     openstack_compute_instance_v2.terraform-instance-db-3,
-    openstack_networking_subnet_v2.terraform-subnet-web 
+    openstack_networking_subnet_v2.terraform-subnet-web,
+    openstack_compute_instance_v2.terraform-instance-maintenance 
   ]
 
   user_data = local.user_data_web
@@ -331,7 +414,8 @@ resource "openstack_compute_instance_v2" "terraform-instance-web-3" {
     openstack_compute_instance_v2.terraform-instance-db-1,
     openstack_compute_instance_v2.terraform-instance-db-2,
     openstack_compute_instance_v2.terraform-instance-db-3,
-    openstack_networking_subnet_v2.terraform-subnet-web 
+    openstack_networking_subnet_v2.terraform-subnet-web,
+    openstack_compute_instance_v2.terraform-instance-maintenance 
   ]
 
   user_data = local.user_data_web
