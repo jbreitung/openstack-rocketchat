@@ -9,7 +9,7 @@ apt upgrade -y
 apt install -y --no-install-recommends ca-certificates curl wget gnupg dirmngr xz-utils
 
 #Installieren von MongoDB-Tools fuer Backup und Restore
-apt install -y --no-install-recommends mongodb-org-tools
+apt install -y --no-install-recommends mongo-tools
 
 #Backup Mount Verzeichnis anlegen und mounten
 mkdir -p $BACKUP_PATH
