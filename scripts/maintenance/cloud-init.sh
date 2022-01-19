@@ -20,14 +20,16 @@ mount /dev/vdb $BACKUP_PATH
 if [ -z "$(ls -A $BACKUP_PATH)" ]; then
    echo "No existing backups found. Not performing restore."
 else
-   echo "Found exitsting backup files. Performing restore of databases."
+   echo "Found exitsting backup files. Manual restore is recommended!"
 
-   sh /tmp/setup/openstack-rocketchat-master/scripts/maintenance/restore.sh
+   #sh /tmp/setup/openstack-rocketchat-master/scripts/maintenance/restore.sh
 fi
 
 #Verschieben des Backup-Scripts und einrichten des Cronjobs
 mkdir -p /opt/rcnet/
 mv /tmp/setup/openstack-rocketchat-master/scripts/maintenance/backup.sh /opt/rcnet/backup.sh
+#Verschiebe ebenfalls das Restore-Script fuer manuellen Restore
+mv /tmp/setup/openstack-rocketchat-master/scripts/maintenance/restore.sh /opt/rcnet/restore.sh
 
 #Lese aktuelle Crontab, füge Zeile hinzu und schreibe sie wieder
 crontab -l > /tmp/setup/openstack-rocketchat-master/scripts/maintenance/crontab
