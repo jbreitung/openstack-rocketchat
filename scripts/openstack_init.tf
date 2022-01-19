@@ -75,14 +75,15 @@ provider "openstack" {
 
 ###########################################################################
 #
-# Schlüsselpaare für RocketChat Systeme erzeugen.
-# Wir nutzen für alle Systeme dieselben Schlüsselpaare.
+# Schlüsselpaare für RocketChat Systeme definieren.
+# Falls noch nicht geschehen, hier bitte den Public-Key des
+# Systems einfuegen, welches auf den Maintenance-Node zugreifen soll.
 #
 ###########################################################################
 
 resource "openstack_compute_keypair_v2" "terraform-keypair" {
   name        = local.keypair_name
-  public_key  = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII9RLftcwgWek5rfUQvpQckypGOYuYp6KXspSGuoBaDU"
+  public_key  = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM9glNT18ZQf8nnU/WSX7Io1526hh5D14aThzwzi6ffW"
 }
 
 ###########################################################################
@@ -209,7 +210,7 @@ resource "openstack_networking_network_v2" "terraform-network-mtn" {
 resource "openstack_networking_subnet_v2" "terraform-subnet-mtn" {
   name       = local.subnet_mtn_name
   network_id = openstack_networking_network_v2.terraform-network-mtn.id
-  cidr       = "10.0.0.0/24"
+  cidr       = "10.0.50.0/24"
   ip_version = 4
 }
 
