@@ -30,6 +30,11 @@ mkdir -p /opt/rcnet/
 mv /tmp/setup/openstack-rocketchat-master/scripts/maintenance/backup.sh /opt/rcnet/backup.sh
 #Verschiebe ebenfalls das Restore-Script fuer manuellen Restore
 mv /tmp/setup/openstack-rocketchat-master/scripts/maintenance/restore.sh /opt/rcnet/restore.sh
+#Verschiebe die Konfiguration fuer Rsyslog
+mv /tmp/setup/openstack-rocketchat-master/scripts/maintenance/rsyslog.conf /etc/rsyslog.conf
+
+#Rsyslog neustarten
+systemctl restart rsyslog
 
 #Lese aktuelle Crontab, füge Zeile hinzu und schreibe sie wieder
 crontab -l > /tmp/setup/openstack-rocketchat-master/scripts/maintenance/crontab

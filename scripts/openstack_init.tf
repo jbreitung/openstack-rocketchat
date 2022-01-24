@@ -165,6 +165,17 @@ resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcmtn-rule-
   security_group_id = openstack_networking_secgroup_v2.terraform-secgroup-rcmtn.id
 }
 
+# Regel fuer eingehenden Rsyslog UDP Traffic
+resource "openstack_networking_secgroup_rule_v2" "terraform-secgroup-rcmtn-rule-rsyslog" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "udp"
+  port_range_min    = 514
+  port_range_max    = 514
+  #remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = openstack_networking_secgroup_v2.terraform-secgroup-rcmtn.id
+}
+
 ###########################################################################
 #
 # Netzwerke fuer Web- und Datenbank VMs erstellen.
@@ -333,6 +344,7 @@ resource "openstack_compute_instance_v2" "terraform-instance-maintenance" {
 
   network {
     uuid = openstack_networking_network_v2.terraform-network-mtn.id
+    fixed_ip_v4 = "10.0.50.10"
   }
 
   depends_on = [ 
@@ -447,7 +459,7 @@ resource "openstack_lb_listener_v2" "terraform-lb-listener-web" {
 # Pool fuer Load Balancer erstellen
 resource "openstack_lb_pool_v2" "terraform-lb-pool-web" {
   protocol    = "HTTP"
-  lb_method   = "ROUND_ROBIN"
+  lb_method   = "SOURCE_IP"
   listener_id = openstack_lb_listener_v2.terraform-lb-listener-web.id
 }
 

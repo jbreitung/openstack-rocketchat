@@ -9,6 +9,12 @@ apt upgrade -y
 #Grundlegende Pakete fuer sichere Kommunikation installieren
 apt install -y --no-install-recommends ca-certificates curl wget gnupg dirmngr xz-utils
 
+#Verschiebe die Konfiguration fuer Rsyslog
+mv /tmp/setup/openstack-rocketchat-master/scripts/database/rsyslog.conf /etc/rsyslog.conf
+
+#Rsyslog neustarten
+systemctl restart rsyslog
+
 #Public-Key des MongoDB-Repos hinzufuegen.
 curl -fsSL https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
 #MongoDB-Repo der Package-List hinzufuegen.

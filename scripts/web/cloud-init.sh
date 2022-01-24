@@ -15,6 +15,12 @@ apt upgrade -y
 #Grundlegende Pakete fuer sichere Kommunikation installieren
 apt install -y --no-install-recommends ca-certificates curl wget gnupg dirmngr xz-utils
 
+#Verschiebe die Konfiguration fuer Rsyslog
+mv /tmp/setup/openstack-rocketchat-master/scripts/web/rsyslog.conf /etc/rsyslog.conf
+
+#Rsyslog neustarten
+systemctl restart rsyslog
+
 #NodeJS installieren
 curl -fsSLO --compressed "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-$ARCH.tar.xz"
 tar -xJf "node-v$NODE_VERSION-linux-$ARCH.tar.xz" -C /usr/local --strip-components=1 --no-same-owner
@@ -55,9 +61,9 @@ mv bundle/ /opt/RocketChat/
 cd /opt/RocketChat/
 
 #Installieren von PIP
-apt install -y python3-pip
+#apt install -y python3-pip
 #Python3 Openstack-Client via PIP installieren.
-pip install python-openstackclient
+#pip install python-openstackclient
 
 #Zurueck ins Start-Verzeichnis wechseln.
 cd $startDir
