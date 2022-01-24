@@ -197,10 +197,18 @@ resource "openstack_networking_subnet_v2" "terraform-subnet-web" {
   ip_version = 4
 }
 
+resource "time_sleep" "wait_30_seconds_x1" {
+  depends_on = [openstack_networking_subnet_v2.terraform-subnet-web]
+
+  destroy_duration = "15s"
+}
+
 # Uebergeordnetes DB-Netzwerk erstellen
 resource "openstack_networking_network_v2" "terraform-network-db" {
   name           = local.net_db_name
   admin_state_up = "true"
+
+  depends_on = [time_sleep.wait_30_seconds_x1]
 }
 
 # DB-Subnetz erstellen
@@ -211,10 +219,18 @@ resource "openstack_networking_subnet_v2" "terraform-subnet-db" {
   ip_version = 4
 }
 
+resource "time_sleep" "wait_30_seconds_x2" {
+  depends_on = [openstack_networking_subnet_v2.terraform-subnet-db]
+
+  destroy_duration = "15s"
+}
+
 # Maintenance-Netzwerk erstellen
 resource "openstack_networking_network_v2" "terraform-network-mtn" {
   name           = local.net_mtn_name
   admin_state_up = "true"
+
+  depends_on = [time_sleep.wait_30_seconds_x2]
 }
 
 # Maintenance-Subnetz erstellen
