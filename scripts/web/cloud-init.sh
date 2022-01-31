@@ -60,21 +60,10 @@ cd ../../../
 mv bundle/ /opt/RocketChat/
 cd /opt/RocketChat/
 
-#Installieren von PIP
-#apt install -y python3-pip
-#Python3 Openstack-Client via PIP installieren.
-#pip install python-openstackclient
-
 #Zurueck ins Start-Verzeichnis wechseln.
 cd $startDir
 
-#Definierte Umgebungsvariablen des OpenStack API Sktiptes einlesen.
-#source /tmp/setup/openstack-rocketchat-master/scripts/web/openstack.sh
-
-#openstack server list --name="RocketChat_vm_DB-[1-3]"
-
 #Openstack API abfragen nach Loadbalancer für ROOT_URL und so.
-#TODO: Replace these example values by rsheal values fetched from OpenStack API.
 ROCKETCHAT_URL=http:\\/\\/chat.example.org
 ROCKETCHAT_PORT=3000
 MONGODB_URL=mongodb:\\/\\/10.0.200.10:27017,10.0.200.20:27017,10.0.200.30:27017\\/rocketchat?replicaSet=rs0
