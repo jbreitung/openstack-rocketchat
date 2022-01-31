@@ -83,7 +83,7 @@ provider "openstack" {
 
 resource "openstack_compute_keypair_v2" "terraform-keypair" {
   name        = local.keypair_name
-  public_key  = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM9glNT18ZQf8nnU/WSX7Io1526hh5D14aThzwzi6ffW"
+  public_key  = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH/t5oB4e1y29QjjiVn5e080F79P0T0k+dmE960gFObH"
 }
 
 ###########################################################################

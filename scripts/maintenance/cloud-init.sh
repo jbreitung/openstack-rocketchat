@@ -13,6 +13,19 @@ apt install -y --no-install-recommends mongo-tools
 
 #Backup Mount Verzeichnis anlegen und mounten
 mkdir -p $BACKUP_PATH
+
+#Pruefen, ob das Filesystem auf dem Volume bereits erstellt wurde
+fscheck=$(blkid -o value -s TYPE /dev/vdb)
+
+if [ "$fscheck" = "ext4" ]
+then
+   echo "Filesystem already initialized."
+else
+   echo "Filesystem not initialized. Creating new EXT4 filesystem on /dev/vdb"
+
+   mkfs.ext4 /dev/vdb
+fi
+
 mount /dev/vdb $BACKUP_PATH
 
 #Initial führe einen Restore der evtl. bereits vorhandenen Backups aus
