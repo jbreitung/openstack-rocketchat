@@ -46,6 +46,9 @@ mv /tmp/setup/openstack-rocketchat-master/scripts/maintenance/restore.sh /opt/rc
 #Verschiebe die Konfiguration fuer Rsyslog
 mv /tmp/setup/openstack-rocketchat-master/scripts/maintenance/rsyslog.conf /etc/rsyslog.conf
 
+#Dateirechte zum ausfuehren setzen
+chmod +x /opt/rcnet/*.sh
+
 #Create folder for rsyslog
 mkdir /var/log/remotelogs
 chown -R syslog:adm /var/log/remotelogs
